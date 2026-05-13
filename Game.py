@@ -33,7 +33,7 @@ MELEE_RANGE = 30
 MELEE_DAMAGE = 20
 
 # Boss constants
-BOSS_SCORE_REQUIREMENT = 0
+BOSS_SCORE_REQUIREMENT = 300
 BOSS_MAX_HP = 800
 BOSS_SPEED_P1 = 0.9
 BOSS_SPEED_P2 = 1.4
@@ -116,7 +116,6 @@ SPRITES = {
     }
 }
 
-# Boss sprite sheets — provide boss-walk.png and boss-fly.png
 BOSS_SPRITES = {
     "walk": {
         "sheet": pygame.image.load("boss-walk.png").convert_alpha(),
@@ -128,7 +127,6 @@ BOSS_SPRITES = {
     },
 }
 
-# Fireball image — provide fireball.png, or a simple circle is used as fallback
 _fb_raw = pygame.image.load("fireball.png").convert_alpha()
 FIREBALL_IMG = pygame.transform.scale(_fb_raw, (48, 48))
 
@@ -147,7 +145,7 @@ ENEMY_SPRITES = {
         "sheet": pygame.image.load("enemy-green-orb.png").convert_alpha(),
         "frames": 10,
         "type": "fly",
-        "hp": 20,
+        "hp": 40,
         "speed": 0.7,
         "dmg": 1,
         "scale": 1,
@@ -159,7 +157,7 @@ ENEMY_SPRITES = {
         "hp": 40,
         "speed": 0.8,
         "dmg": 1,
-        "scale": 1,
+        "scale": 1.5,
     },
     "enemy-night-crawler": {
         "sheet": pygame.image.load("enemy-night-crawler.png").convert_alpha(),
@@ -177,7 +175,7 @@ ENEMY_SPRITES = {
         "hp": 80,
         "speed": 0.6,
         "dmg": 1,
-        "scale": 0.9,
+        "scale": 0.85,
     },
     "enemy-skin-crawler": {
         "sheet": pygame.image.load("enemy-skin-crawler.png").convert_alpha(),
@@ -186,7 +184,7 @@ ENEMY_SPRITES = {
         "hp": 60,
         "speed": 0.7,
         "dmg": 1,
-        "scale": 0.9,
+        "scale": 0.8,
     },
     "enemy-magma-shark": {
         "sheet": pygame.image.load("enemy-magma-shark.png").convert_alpha(),
@@ -195,7 +193,7 @@ ENEMY_SPRITES = {
         "hp": 80,
         "speed": 0.7,
         "dmg": 1,
-        "scale": 1,
+        "scale": 1.5,
     },
     "enemy-magma-dog": {
         "sheet": pygame.image.load("enemy-magma-dog.png").convert_alpha(),
@@ -204,7 +202,7 @@ ENEMY_SPRITES = {
         "hp": 60,
         "speed": 0.6,
         "dmg": 1,
-        "scale": 1,
+        "scale": 1.5,
     },
     "enemy-ice-worm": {
         "sheet": pygame.image.load("enemy-ice-worm.png").convert_alpha(),
@@ -213,7 +211,7 @@ ENEMY_SPRITES = {
         "hp": 40,
         "speed": 0.4,
         "dmg": 1,
-        "scale": 1,
+        "scale": 1.5,
     },
     "enemy-ice-golem": {
         "sheet": pygame.image.load("enemy-ice-golem.png").convert_alpha(),
@@ -247,7 +245,7 @@ ENEMY_SPRITES = {
 ROOM_ENEMIES = {
     "tile1.tile": ["enemy-green-orb", "enemy-fox"],
     "tile2.tile": ["enemy-soul-wisp", "enemy-night-crawler"],
-    "tile3.tile": ["enemy-sand-stalker"],
+    "tile3.tile": ["enemy-sand-stalker", "enemy-skin-crawler"],
     "tile4.tile": ["enemy-magma-shark", "enemy-magma-dog"],
     "tile5.tile": ["enemy-ice-worm", "enemy-ice-golem"],
     "tile6.tile": ["enemy-ruin-lion", "enemy-rock-turtle"],
@@ -258,7 +256,7 @@ BACKGROUNDS = {
     "tile2.tile": pygame.image.load("background-cave.webp").convert(),
     "tile3.tile": pygame.image.load("background-wasteland.webp").convert(),
     "tile4.tile": pygame.image.load("background-magma.webp").convert(),
-    "tile5.tile": pygame.image.load("background-ice.webp").convert(),
+    "tile5.tile": pygame.image.load("background-ice.png").convert(),
     "tile6.tile": pygame.image.load("background-ruin.webp").convert(),
     "tile7.tile": pygame.image.load("background-final.webp").convert()
 }
@@ -548,9 +546,9 @@ class Player(pygame.sprite.Sprite):
                         self.last_melee_attack = now
                         play_sound("attack")
                         if self.direction == "right":
-                            self.melee_rect = pygame.Rect(self.hitbox.right, self.hitbox.top, MELEE_RANGE, 2)
+                            self.melee_rect = pygame.Rect(self.hitbox.right, self.hitbox.top, MELEE_RANGE, self.hitbox.height)
                         else:
-                            self.melee_rect = pygame.Rect(self.hitbox.left - MELEE_RANGE, self.hitbox.top, MELEE_RANGE, 2)
+                            self.melee_rect = pygame.Rect(self.hitbox.left - MELEE_RANGE, self.hitbox.top, MELEE_RANGE, self.hitbox.height)
 
     def handle_healing(self):
         keys = pygame.key.get_pressed()
@@ -1135,6 +1133,8 @@ def update(player: Player, collision_rects, events, camera: Camera, enemies: lis
     player.update_timers()
     player.handle_healing()
 
+    player.max_lives = 5 + player.score // 200 if player.score >= 0 else 5
+
     if not player.is_healing:
         player.move(collision_rects, camera)
     player.attack(events)
@@ -1167,9 +1167,6 @@ def update(player: Player, collision_rects, events, camera: Camera, enemies: lis
     if boss is not None and not boss.dead:
         boss.update(collision_rects, player, fireballs)
 
-        # Player hits boss with melee
-        # melee_rect is recreated each attack frame in player.attack(); we
-        # check it here before it's cleared below.
         if player.melee_rect and boss.hitbox.colliderect(player.melee_rect):
             boss.take_damage(MELEE_DAMAGE)
             player.soul = min(player.soul + 2, player.max_soul)
@@ -1180,9 +1177,7 @@ def update(player: Player, collision_rects, events, camera: Camera, enemies: lis
 
         if boss.hp <= 0:
             boss.dead = True
-            player.score += 100   # big score bonus for killing the boss
 
-    # Always clear melee_rect after boss check too
     player.melee_rect = None
 
     # ── Fireballs ─────────────────────────────────────────────────────────
@@ -1471,19 +1466,31 @@ def draw_entrance_prompts(surface, player, lvl_name, entrances, camera):
         if dist <= radius_px:
             locked = dest_file == "tile7.tile" and player.score < BOSS_SCORE_REQUIREMENT
 
-            label    = "NEED 300 SCORE" if locked else "E TO MOVE"
+            label    = "NEED 300\nSCORE TO\nENTER" if locked else "PRESS E\nTO MOVE"
             colour   = (255, 80, 80) if locked else (255, 255, 255)
             f        = font_locked if locked else font
 
-            text     = f.render(label, True, colour)
-            draw_tx  = ent_rect.centerx - camera.x - text.get_width() // 2
-            draw_ty  = ent_rect.top - camera.y - text.get_height() - 4
+            lines = label.split('\n')
+            
+            rendered_lines = [f.render(line, True, colour) for line in lines]
+            
+            max_width = max([line_surf.get_width() for line_surf in rendered_lines])
+            line_height = f.get_linesize()  # Gets the standard height of a line for this font
+            total_height = line_height * len(rendered_lines)
 
-            bg_rect  = pygame.Rect(draw_tx - 3, draw_ty - 2, text.get_width() + 6, text.get_height() + 4)
+            draw_tx  = ent_rect.centerx - camera.x - max_width // 2
+            draw_ty  = ent_rect.top - camera.y - total_height - 4
+
+            bg_rect  = pygame.Rect(draw_tx - 3, draw_ty - 2, max_width + 6, total_height + 4)
             bg_surf  = pygame.Surface((bg_rect.width, bg_rect.height), pygame.SRCALPHA)
             bg_surf.fill((0, 0, 0, 140))
             surface.blit(bg_surf, bg_rect)
-            surface.blit(text, (draw_tx, draw_ty))
+
+            current_y = draw_ty
+            for line_surf in rendered_lines:
+                line_x = ent_rect.centerx - camera.x - line_surf.get_width() // 2
+                surface.blit(line_surf, (line_x, current_y))
+                current_y += line_height # Move down for the next line
 
 def pause():
     global in_game, paused
@@ -1526,7 +1533,6 @@ def tile_map(surface, grid, cam_x, cam_y):
             x += TILE_SIZE
         y += TILE_SIZE
 
-
 entrances = load_entrances("entries.txt")
 
 grid = []
@@ -1562,7 +1568,7 @@ paused     = False
 in_game    = True
 running    = True
 
-game_state = "menu"   # "menu" | "playing" | "paused" | "game_over"
+game_state = "menu"   # "menu" | "playing" | "paused" | "game_over" | "win"
 
 play_sound("background")
 
@@ -1596,6 +1602,10 @@ while running:
                     running = False
                     
         elif game_state == "game_over":
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
+                game_state = "menu"
+
+        elif game_state == "win":
             if event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
                 game_state = "menu"
 
@@ -1634,8 +1644,10 @@ while running:
         # ── Boss ──────────────────────────────────────────────────────────
         if boss is not None and not boss.dead:
             boss_draw_rect = boss.rect.move(-int(camera.x), -int(camera.y))
-            pygame.draw.rect(logical, (255, 0, 0), boss.hitbox, 2)
             logical.blit(boss.get_draw_image(), boss_draw_rect)
+        
+        if boss is not None and boss.dead:
+            game_state = "win"
 
 
         # ── HUD ───────────────────────────────────────────────────────────
@@ -1664,8 +1676,8 @@ while running:
         font_title  = pygame.font.SysFont("Calibri", 30, bold=True)
         font_prompt = pygame.font.SysFont("Calibri", 15)
         
-        title_text  = font_title.render("FORGOTTEN BUG KNIGHT", True, (255, 255, 255))
-        prompt_text = font_prompt.render("Press ENTER to Start",  True, (200, 200, 200))
+        title_text  = font_title.render("FORGOTTEN BUG KNIGHT",    True, (255, 255, 255))
+        prompt_text = font_prompt.render("Press ENTER to Start",   True, (200, 200, 200))
         quit_text   = font_prompt.render("Press Q to Quit",        True, (200, 200, 200))
         
         cx, cy = LOGICAL_WIDTH // 2, LOGICAL_HEIGHT // 2
@@ -1679,7 +1691,7 @@ while running:
         font_title  = pygame.font.SysFont("Calibri", 30, bold=True)
         font_prompt = pygame.font.SysFont("Calibri", 15)
         
-        title_text  = font_title.render("GAME OVER",                         True, (255, 100, 100))
+        title_text  = font_title.render("GAME OVER",                          True, (255, 100, 100))
         score_text  = font_prompt.render(f"Final Score: {int(player.score)}", True, (255, 255, 255))
         prompt_text = font_prompt.render("Press ENTER to Return to Menu",     True, (200, 200, 200))
         
@@ -1697,7 +1709,7 @@ while running:
         font_big   = pygame.font.SysFont("Calibri", 20)
         font_small = pygame.font.SysFont("Calibri", 13)
 
-        pause_text  = font_big.render("PAUSED",       True, (255, 255, 255))
+        pause_text  = font_big.render("PAUSED",  True, (255, 255, 255))
         resume_text = font_small.render("R  -  Resume", True, (200, 200, 200))
         quit_text   = font_small.render("Q  -  Quit",   True, (200, 200, 200))
 
@@ -1705,6 +1717,24 @@ while running:
         logical.blit(pause_text,  pause_text.get_rect(center=(cx, cy - 20)))
         logical.blit(resume_text, resume_text.get_rect(center=(cx, cy + 10)))
         logical.blit(quit_text,   quit_text.get_rect(center=(cx, cy + 30)))
+    
+    elif game_state == "win":
+        draw_background(logical, camera)
+        overlay = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT), pygame.SRCALPHA)
+        overlay.fill((0, 0, 0, 150))
+        logical.blit(overlay, (0, 0))
+
+        font_big   = pygame.font.SysFont("Calibri", 20)
+        font_small = pygame.font.SysFont("Calibri", 13)
+
+        win_text = font_big.render("YOU WIN!", True, (255, 255, 255))
+        play_again = font_small.render("Press enter to play again", True, (200, 200, 200))
+        score_text = font_small.render(f"Final score: {int(player.score)}", True, (200, 200, 200))
+
+        cx, cy = LOGICAL_WIDTH // 2, LOGICAL_HEIGHT // 2
+        logical.blit(win_text, win_text.get_rect(center=(cx, cy - 20)))
+        logical.blit(score_text, score_text.get_rect(center=(cx, cy + 10)))
+        logical.blit(play_again, play_again.get_rect(center=(cx, cy + 40)))
 
     screen.fill((0, 0, 0))
     dest   = get_letterbox_rect(logical.get_size(), screen.get_size())
