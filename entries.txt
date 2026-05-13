@@ -1,0 +1,12 @@
+tile1.tile  49  15   tile2.tile  0   15
+tile2.tile  0   15   tile1.tile  49  15
+tile2.tile  49  15   tile3.tile  0   15
+tile3.tile  0   15   tile2.tile  49  15
+tile3.tile  49  15   tile4.tile  0   15
+tile4.tile  0   15   tile3.tile  49  15
+tile4.tile  49  15   tile5.tile  0   15
+tile5.tile  0   15   tile4.tile  49  15
+tile5.tile  49  15   tile6.tile  0   15
+tile6.tile  0   15   tile5.tile  49  15
+tile6.tile  49  15   tile7.tile  0   15
+tile7.tile  0   15   tile6.tile  49  15
