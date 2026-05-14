@@ -13,7 +13,7 @@ logical = pygame.Surface((LOGICAL_WIDTH, LOGICAL_HEIGHT))
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 
 clock = pygame.time.Clock()
-pygame.display.set_caption("Forgotten Bug Knight")
+pygame.display.set_caption("Forgotten Knight")
 
 lvl_name = "tile1.tile"
 
@@ -34,17 +34,17 @@ MELEE_DAMAGE = 20
 
 # Boss constants
 BOSS_SCORE_REQUIREMENT = 300
-BOSS_MAX_HP = 800
-BOSS_SPEED_P1 = 0.9
-BOSS_SPEED_P2 = 1.4
+BOSS_MAX_HP = 1200
+BOSS_SPEED_P1 = 1.1
+BOSS_SPEED_P2 = 1.5
 BOSS_FIREBALL_CD_P1 = 3000       
-BOSS_FIREBALL_CD_P2 = 3000       
+BOSS_FIREBALL_CD_P2 = 1500       
 BOSS_RAIN_INTERVAL = 350         
 BOSS_RAIN_DURATION = 15000       
-BOSS_RISE_TARGET_Y = 35.0        
+BOSS_RISE_TARGET_Y = 50        
 FIREBALL_SPEED = 3.0
 FIREBALL_RAIN_SPEED = 4.0
-FIREBALL_DAMAGE = 1
+FIREBALL_DAMAGE = 2
 
 enemy_spawn_interval = 2000
 
@@ -129,7 +129,6 @@ BOSS_SPRITES = {
 
 _fb_raw = pygame.image.load("fireball.png").convert_alpha()
 FIREBALL_IMG = pygame.transform.scale(_fb_raw, (48, 48))
-
 
 ENEMY_SPRITES = {
     "enemy-fox": {
@@ -279,7 +278,7 @@ SOUNDS = {
     "background": pygame.mixer.Sound("background-music.mp3"),
     "attack": pygame.mixer.Sound("slash.mp3"),
     "dash": pygame.mixer.Sound("dash.mp3"),
-    "charging": pygame.mixer.Sound("charging.mp3")
+    "charging": pygame.mixer.Sound("charging.mp3"),
 }
 
 SOLID_TILES = {1, 2, 3, 4, 5, 6, 7, 8, 9}
@@ -887,6 +886,7 @@ class Boss(pygame.sprite.Sprite):
             self.invulnerable = False        # vulnerable again
             self.p2_start = now
             self.last_fireball = now
+            self.hp = self.max_hp
 
     def _substate_flying(self, player, fireballs, now):
         # Horizontal chase
@@ -900,7 +900,7 @@ class Boss(pygame.sprite.Sprite):
         else:
             self.y += BOSS_SPEED_P2 * 0.7
         
-        self.y = min(175, self.y)
+        self.y = max(min(150, self.y), 50)
 
         self.rect.x = int(self.x)
         self.rect.y = int(self.y)
@@ -1508,7 +1508,7 @@ def reset_game(player, camera):
     fireballs = []
     
     spawn_col = spawn_x // TILE_SIZE
-    load_level("tile1.tile", spawn_col, spawn_row, player)
+    load_level("tile7.tile", spawn_col, spawn_row, player)
     
     camera.x = 0
     camera.y = 0
